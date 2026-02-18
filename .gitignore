@@ -1,0 +1,6 @@
+__pycache__/
+*.pdf
+*.docx
+venv/
+.env
+data/  # Keep data local for privacy/size reasons unless it's small sample data
