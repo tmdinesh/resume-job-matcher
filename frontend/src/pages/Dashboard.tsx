@@ -4,9 +4,82 @@ import { Users, TrendingUp, AlertCircle, XCircle, ArrowRight } from 'lucide-reac
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { apiService } from '../services/api';
 import type { DashboardStats, Activity } from '../types';
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
+import {
+  PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, LineChart, Line
+} from 'recharts';
 
-const COLORS = ['#10b981', '#f59e0b', '#f97316', '#ef4444'];
+const CHART_COLORS = {
+  strong: '#10b981',
+  medium: '#f59e0b',
+  weak: '#f97316',
+  reject: '#ef4444',
+  primary: '#6366f1',
+};
+
+const statCards = (stats: DashboardStats) => [
+  {
+    label: 'Total Candidates',
+    value: stats.totalCandidates,
+    suffix: '',
+    icon: Users,
+    iconBg: 'bg-indigo-500/10',
+    iconColor: 'text-indigo-600 dark:text-indigo-400',
+    border: 'border-l-indigo-500/60',
+    sub: 'Active profiles',
+  },
+  {
+    label: 'Strong Fit',
+    value: stats.strongFit,
+    suffix: '',
+    icon: TrendingUp,
+    iconBg: 'bg-emerald-500/10',
+    iconColor: 'text-emerald-600 dark:text-emerald-400',
+    border: 'border-l-emerald-500/60',
+    sub: 'High match score',
+  },
+  {
+    label: 'Medium Fit',
+    value: stats.mediumFit,
+    suffix: '',
+    icon: AlertCircle,
+    iconBg: 'bg-amber-500/10',
+    iconColor: 'text-amber-600 dark:text-amber-400',
+    border: 'border-l-amber-500/60',
+    sub: 'Moderate match',
+  },
+  {
+    label: 'Weak / Reject',
+    value: stats.weakFit,
+    suffix: '',
+    icon: XCircle,
+    iconBg: 'bg-red-500/10',
+    iconColor: 'text-red-600 dark:text-red-400',
+    border: 'border-l-red-500/60',
+    sub: 'Low match score',
+  },
+  {
+    label: 'Avg Match Score',
+    value: stats.averageMatchScore,
+    suffix: '%',
+    icon: TrendingUp,
+    iconBg: 'bg-indigo-500/10',
+    iconColor: 'text-indigo-600 dark:text-indigo-400',
+    border: 'border-l-indigo-500/60',
+    sub: 'Overall average',
+  },
+];
+
+const SkeletonCard = () => (
+  <div className="rounded-xl border border-border bg-card p-6 space-y-3">
+    <div className="flex justify-between items-center">
+      <div className="skeleton h-3 w-28" />
+      <div className="skeleton h-8 w-8 rounded-lg" />
+    </div>
+    <div className="skeleton h-8 w-16" />
+    <div className="skeleton h-2.5 w-20" />
+  </div>
+);
 
 export const Dashboard = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -31,16 +104,6 @@ export const Dashboard = () => {
     fetchData();
   }, []);
 
-  if (loading || !stats) {
-    return <div className="space-y-6">Loading...</div>;
-  }
-
-  const pieData = [
-    { name: 'Strong Fit', value: stats.strongFit, color: COLORS[0] },
-    { name: 'Medium Fit', value: stats.mediumFit, color: COLORS[1] },
-    { name: 'Weak Fit', value: stats.weakFit, color: COLORS[2] },
-  ];
-
   const skillsData = [
     { skill: 'Python', count: 8 },
     { skill: 'React', count: 7 },
@@ -55,23 +118,23 @@ export const Dashboard = () => {
   ];
 
   const scoreDistribution = [
-    { range: '0-20', count: 0 },
-    { range: '21-40', count: 1 },
-    { range: '41-60', count: 2 },
-    { range: '61-80', count: 4 },
-    { range: '81-100', count: 3 },
+    { range: '0–20', count: 0 },
+    { range: '21–40', count: 1 },
+    { range: '41–60', count: 2 },
+    { range: '61–80', count: 4 },
+    { range: '81–100', count: 3 },
   ];
 
   const getActivityIcon = (type: string) => {
     switch (type) {
       case 'resume_uploaded':
-        return <Users className="h-4 w-4 text-blue-600" />;
+        return <div className="h-8 w-8 rounded-lg bg-indigo-500/10 flex items-center justify-center"><Users className="h-4 w-4 text-indigo-600 dark:text-indigo-400" /></div>;
       case 'jd_processed':
-        return <TrendingUp className="h-4 w-4 text-green-600" />;
+        return <div className="h-8 w-8 rounded-lg bg-emerald-500/10 flex items-center justify-center"><TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /></div>;
       case 'candidate_shortlisted':
-        return <AlertCircle className="h-4 w-4 text-yellow-600" />;
+        return <div className="h-8 w-8 rounded-lg bg-amber-500/10 flex items-center justify-center"><AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" /></div>;
       default:
-        return null;
+        return <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center"><div className="h-2 w-2 rounded-full bg-muted-foreground" /></div>;
     }
   };
 
@@ -88,174 +151,189 @@ export const Dashboard = () => {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-up">
+    <div className="space-y-7 animate-in fade-in slide-up">
+      {/* Page header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground mt-2">Overview of your recruitment analytics</p>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Dashboard</h1>
+        <p className="text-sm text-muted-foreground mt-1">Overview of your recruitment analytics</p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        <Card className="hover:shadow-soft-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Candidates</CardTitle>
-            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Users className="h-4 w-4 text-primary" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-foreground">{stats.totalCandidates}</div>
-            <p className="text-xs text-muted-foreground mt-1">Active profiles</p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-soft-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Strong Fit</CardTitle>
-            <div className="h-8 w-8 rounded-lg bg-green-500/10 flex items-center justify-center">
-              <TrendingUp className="h-4 w-4 text-green-600" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-green-600">{stats.strongFit}</div>
-            <p className="text-xs text-muted-foreground mt-1">High match score</p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-soft-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Medium Fit</CardTitle>
-            <div className="h-8 w-8 rounded-lg bg-yellow-500/10 flex items-center justify-center">
-              <AlertCircle className="h-4 w-4 text-yellow-600" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-yellow-600">{stats.mediumFit}</div>
-            <p className="text-xs text-muted-foreground mt-1">Moderate match</p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-soft-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Weak / Reject</CardTitle>
-            <div className="h-8 w-8 rounded-lg bg-red-500/10 flex items-center justify-center">
-              <XCircle className="h-4 w-4 text-red-600" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-red-600">{stats.weakFit}</div>
-            <p className="text-xs text-muted-foreground mt-1">Low match score</p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-soft-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Avg Match Score</CardTitle>
-            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <TrendingUp className="h-4 w-4 text-primary" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-primary">{stats.averageMatchScore}%</div>
-            <p className="text-xs text-muted-foreground mt-1">Overall average</p>
-          </CardContent>
-        </Card>
+      {/* Stats Grid */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        {loading
+          ? Array(5).fill(0).map((_, i) => <SkeletonCard key={i} />)
+          : stats && statCards(stats).map((card) => {
+            const Icon = card.icon;
+            return (
+              <Card
+                key={card.label}
+                className={`border-l-4 ${card.border} hover:shadow-soft-lg transition-all duration-300 group`}
+              >
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-5 px-5">
+                  <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    {card.label}
+                  </CardTitle>
+                  <div className={`h-8 w-8 rounded-lg ${card.iconBg} flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                    <Icon className={`h-4 w-4 ${card.iconColor}`} />
+                  </div>
+                </CardHeader>
+                <CardContent className="px-5 pb-5">
+                  <div className="text-2xl font-bold text-foreground">
+                    {card.value}{card.suffix}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">{card.sub}</p>
+                </CardContent>
+              </Card>
+            );
+          })
+        }
       </div>
 
-      {/* Charts */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle>Fit Distribution</CardTitle>
-            <CardDescription>Candidate match categories</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+      {/* Charts row */}
+      {!loading && stats && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {/* Pie chart */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle>Fit Distribution</CardTitle>
+              <CardDescription>Candidate match categories</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={220}>
+                <PieChart>
+                  <Pie
+                    data={[
+                      { name: 'Strong Fit', value: stats.strongFit, color: CHART_COLORS.strong },
+                      { name: 'Medium Fit', value: stats.mediumFit, color: CHART_COLORS.medium },
+                      { name: 'Weak Fit', value: stats.weakFit, color: CHART_COLORS.weak },
+                    ]}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={55}
+                    outerRadius={80}
+                    paddingAngle={3}
+                    dataKey="value"
+                  >
+                    {[CHART_COLORS.strong, CHART_COLORS.medium, CHART_COLORS.weak].map((color, index) => (
+                      <Cell key={`cell-${index}`} fill={color} strokeWidth={0} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{ borderRadius: '8px', border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))', color: 'hsl(var(--foreground))' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              {/* Legend */}
+              <div className="flex justify-center gap-4 mt-2">
+                {[
+                  { label: 'Strong', color: CHART_COLORS.strong },
+                  { label: 'Medium', color: CHART_COLORS.medium },
+                  { label: 'Weak', color: CHART_COLORS.weak },
+                ].map(({ label, color }) => (
+                  <div key={label} className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full" style={{ background: color }} />
+                    <span className="text-xs text-muted-foreground">{label}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle>Top 10 Skills</CardTitle>
-            <CardDescription>Most common skills across candidates</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={skillsData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="skill" angle={-45} textAnchor="end" height={80} />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="count" fill="#3b82f6" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+          {/* Bar chart */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle>Top 10 Skills</CardTitle>
+              <CardDescription>Most common skills across candidates</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={skillsData} margin={{ bottom: 40 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis
+                    dataKey="skill"
+                    angle={-45}
+                    textAnchor="end"
+                    height={70}
+                    tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                  />
+                  <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
+                  <Tooltip
+                    contentStyle={{ borderRadius: '8px', border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))', color: 'hsl(var(--foreground))' }}
+                  />
+                  <Bar dataKey="count" fill={CHART_COLORS.primary} radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
 
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle>Score Distribution</CardTitle>
-            <CardDescription>Match score ranges</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={scoreDistribution}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="range" />
-                <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
+          {/* Line chart */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle>Score Distribution</CardTitle>
+              <CardDescription>Match score ranges</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={250}>
+                <LineChart data={scoreDistribution}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis dataKey="range" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
+                  <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
+                  <Tooltip
+                    contentStyle={{ borderRadius: '8px', border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))', color: 'hsl(var(--foreground))' }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="count"
+                    stroke={CHART_COLORS.primary}
+                    strokeWidth={2.5}
+                    dot={{ fill: CHART_COLORS.primary, strokeWidth: 0, r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Recent Activity */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>Latest actions in your recruitment pipeline</CardDescription>
-          </div>
-          <Link to="/candidates" className="text-sm text-blue-600 hover:underline flex items-center gap-1">
-            View all <ArrowRight className="h-4 w-4" />
-          </Link>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {activities.map((activity) => (
-              <div key={activity.id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-accent/50 transition-colors group">
-                <div className="flex-shrink-0">
-                  {getActivityIcon(activity.type)}
+      {!loading && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-4">
+            <div>
+              <CardTitle>Recent Activity</CardTitle>
+              <CardDescription className="mt-1">Latest actions in your recruitment pipeline</CardDescription>
+            </div>
+            <Link
+              to="/candidates"
+              className="text-xs text-primary hover:text-primary/80 font-medium flex items-center gap-1 transition-colors"
+            >
+              View all <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="space-y-1">
+              {activities.map((activity) => (
+                <div
+                  key={activity.id}
+                  className="flex items-center gap-4 p-3 rounded-lg hover:bg-accent/50 transition-colors group cursor-default"
+                >
+                  <div className="flex-shrink-0 group-hover:scale-105 transition-transform">
+                    {getActivityIcon(activity.type)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground">{activity.message}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{formatTime(activity.timestamp)}</p>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground group-hover:text-foreground">{activity.message}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{formatTime(activity.timestamp)}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+              ))}
+              {activities.length === 0 && (
+                <p className="text-center text-sm text-muted-foreground py-8">No recent activity</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

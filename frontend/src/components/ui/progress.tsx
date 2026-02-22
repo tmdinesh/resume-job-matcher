@@ -9,7 +9,14 @@ export interface ProgressProps extends React.HTMLAttributes<HTMLDivElement> {
 const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
   ({ className, value, max = 100, ...props }, ref) => {
     const percentage = Math.min(Math.max((value / max) * 100, 0), 100);
-    
+
+    const getBarColor = (pct: number) => {
+      if (pct >= 75) return "from-emerald-500 to-green-400";
+      if (pct >= 50) return "from-amber-500 to-yellow-400";
+      if (pct >= 30) return "from-orange-500 to-amber-400";
+      return "from-red-500 to-red-400";
+    };
+
     return (
       <div
         ref={ref}
@@ -17,7 +24,10 @@ const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
         {...props}
       >
         <div
-          className="h-full bg-primary transition-all duration-500 ease-out rounded-full"
+          className={cn(
+            "h-full bg-gradient-to-r transition-all duration-700 ease-out rounded-full",
+            getBarColor(percentage)
+          )}
           style={{ width: `${percentage}%` }}
         />
       </div>

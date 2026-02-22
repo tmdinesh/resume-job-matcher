@@ -1,10 +1,17 @@
 import { useEffect, useState } from 'react';
-import { FileText, Download, Calendar } from 'lucide-react';
+import { FileText, Download, Calendar, LayoutGrid } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
+import { Badge } from '../components/ui/badge';
 import { apiService } from '../services/api';
 import type { Report } from '../types';
 import { Toast } from '../components/ui/toast';
+
+const reportTypeConfig: Record<string, { label: string; variant: 'default' | 'info' | 'success' | 'warning' }> = {
+  shortlist_summary: { label: 'Shortlist Summary', variant: 'success' },
+  full_ranking: { label: 'Full Ranking', variant: 'info' },
+  bias_evaluation: { label: 'Bias Evaluation', variant: 'warning' },
+};
 
 export const Reports = () => {
   const [reports, setReports] = useState<Report[]>([]);
@@ -38,121 +45,106 @@ export const Reports = () => {
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-      setToast({ message: `Report downloaded as ${format.toUpperCase()}`, type: 'success' });
-    } catch (error) {
+      setToast({ message: `Downloaded as ${format.toUpperCase()}`, type: 'success' });
+    } catch {
       setToast({ message: 'Failed to download report', type: 'error' });
     } finally {
       setDownloading(null);
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
-
-  const getReportTypeLabel = (type: string) => {
-    switch (type) {
-      case 'shortlist_summary':
-        return 'Shortlist Summary';
-      case 'full_ranking':
-        return 'Full Ranking';
-      case 'bias_evaluation':
-        return 'Bias Evaluation';
-      default:
-        return type;
-    }
-  };
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 
   if (loading) {
-    return <div className="space-y-6">Loading reports...</div>;
+    return (
+      <div className="space-y-5">
+        <div className="skeleton h-7 w-24" />
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {Array(3).fill(0).map((_, i) => (
+            <div key={i} className="rounded-xl border border-border bg-card p-6 space-y-4">
+              <div className="skeleton h-4 w-40" />
+              <div className="skeleton h-3 w-24" />
+              <div className="skeleton h-3 w-32" />
+              <div className="skeleton h-8 w-full rounded-lg" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 animate-in fade-in slide-up">
+      {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Reports</h1>
-        <p className="text-gray-500 mt-1">Generate and download recruitment reports</p>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Reports</h1>
+        <p className="text-sm text-muted-foreground mt-1">Generate and download recruitment reports</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {reports.map((report) => (
-          <Card key={report.id} className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <CardTitle className="text-lg">{report.name}</CardTitle>
-                  <CardDescription className="mt-1">
-                    {getReportTypeLabel(report.type)}
-                  </CardDescription>
-                </div>
-                <FileText className="h-5 w-5 text-gray-400" />
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Calendar className="h-4 w-4" />
-                <span>Generated {formatDate(report.dateGenerated)}</span>
-              </div>
-
-              <div className="flex gap-2 pt-2 border-t">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1"
-                  onClick={() => handleDownload(report, 'pdf')}
-                  disabled={downloading !== null}
-                >
-                  {downloading === `${report.id}-pdf` ? (
-                    'Downloading...'
-                  ) : (
-                    <>
-                      <Download className="h-4 w-4 mr-1" />
-                      PDF
-                    </>
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1"
-                  onClick={() => handleDownload(report, 'excel')}
-                  disabled={downloading !== null}
-                >
-                  {downloading === `${report.id}-excel` ? (
-                    'Downloading...'
-                  ) : (
-                    <>
-                      <Download className="h-4 w-4 mr-1" />
-                      Excel
-                    </>
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {reports.length === 0 && (
+      {reports.length === 0 ? (
         <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-gray-500">No reports available</p>
+          <CardContent className="py-16 text-center space-y-4">
+            <div className="h-14 w-14 mx-auto rounded-full bg-muted flex items-center justify-center">
+              <LayoutGrid className="h-7 w-7 text-muted-foreground" />
+            </div>
+            <p className="text-sm text-muted-foreground">No reports available yet</p>
           </CardContent>
         </Card>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {reports.map((report) => {
+            const typeInfo = reportTypeConfig[report.type] ?? { label: report.type, variant: 'default' };
+            return (
+              <Card key={report.id} className="hover:shadow-soft-lg transition-all duration-300 group">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                      <FileText className="h-4 w-4 text-primary" />
+                    </div>
+                    <Badge variant={typeInfo.variant} className="text-[10px] mt-0.5">
+                      {typeInfo.label}
+                    </Badge>
+                  </div>
+                  <div className="mt-3">
+                    <CardTitle className="text-sm leading-snug">{report.name}</CardTitle>
+                    <div className="flex items-center gap-1.5 mt-1.5">
+                      <Calendar className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">Generated {formatDate(report.dateGenerated)}</span>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-2 pt-3 border-t border-border">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => handleDownload(report, 'pdf')}
+                      disabled={downloading !== null}
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      {downloading === `${report.id}-pdf` ? 'Downloading...' : 'PDF'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => handleDownload(report, 'excel')}
+                      disabled={downloading !== null}
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      {downloading === `${report.id}-excel` ? 'Downloading...' : 'Excel'}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       )}
 
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   );
 };
